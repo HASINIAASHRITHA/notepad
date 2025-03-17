@@ -16,6 +16,13 @@
     <!-- Auth Section -->
     <div id="authSection" class="container">
         <div class="auth-form">
+            <div class="toggle-container">
+                <span>Dark Mode</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="authDarkMode">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
             <h2>Welcome to Modern Notepad</h2>
             <div class="tabs">
                 <button class="tab active" data-tab="login">Login</button>
@@ -42,6 +49,13 @@
         <header>
             <h1>My Notes</h1>
             <div class="user-controls">
+                <div class="toggle-container">
+                    <span>Dark Mode</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="notesDarkMode">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
                 <span id="userName"></span>
                 <button onclick="logout()" class="btn-secondary">Logout</button>
             </div>

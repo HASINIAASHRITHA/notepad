@@ -40,11 +40,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Authentication State Observer
+    let authRetryCount = 0;
+    const MAX_AUTH_RETRIES = 3;
+
     auth.onAuthStateChanged((user) => {
-        if (user) {
-            showNotesSection(user);
-        } else {
-            showAuthSection();
+        try {
+            if (user) {
+                authRetryCount = 0; // Reset counter on successful auth
+                showNotesSection(user);
+            } else {
+                showAuthSection();
+            }
+        } catch (error) {
+            console.error("Auth state change error:", error);
+            if (authRetryCount < MAX_AUTH_RETRIES) {
+                authRetryCount++;
+                setTimeout(() => auth.currentUser && showNotesSection(auth.currentUser), 1000 * authRetryCount);
+            }
         }
     });
 
@@ -251,14 +263,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function loadUserInfo(user) {
-        try{
-            const doc = await db.collection('users').doc(user.uid).get();
+        try {
+            if (!user || !user.uid) {
+                console.warn("Invalid user object");
+                userName.textContent = `Welcome, User!`;
+                return;
+            }
+            
+            // Add timeout to prevent hanging requests
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Request timeout')), 10000)
+            );
+            
+            const fetchPromise = db.collection('users').doc(user.uid).get();
+            const doc = await Promise.race([fetchPromise, timeoutPromise]);
+            
+            if (!doc.exists) {
+                throw new Error('User document not found');
+            }
+            
             const userData = doc.data();
-            userName.textContent = `Welcome, ${userData.name}!`;
-        }catch(error){
-             userName.textContent = `Welcome, User!`; // in case user name not found.
+            userName.textContent = `Welcome, ${userData.name || 'User'}!`;
+        } catch (error) {
+            console.error("Error loading user info:", error);
+            userName.textContent = `Welcome, User!`;
         }
-
     }
 
     function showToast(message) {
@@ -267,4 +296,28 @@ document.addEventListener('DOMContentLoaded', function() {
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 3000);
     }
+
+    // Dark Mode Toggle Functionality
+    const authDarkMode = document.getElementById('authDarkMode');
+    const notesDarkMode = document.getElementById('notesDarkMode');
+
+    // Load saved preference
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    authDarkMode.checked = darkMode;
+    notesDarkMode.checked = darkMode;
+    if (darkMode) document.body.classList.add('dark-mode');
+
+    function toggleDarkMode(checked) {
+        if (checked) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+        localStorage.setItem('darkMode', checked);
+        authDarkMode.checked = checked;
+        notesDarkMode.checked = checked;
+    }
+
+    authDarkMode.addEventListener('change', (e) => toggleDarkMode(e.target.checked));
+    notesDarkMode.addEventListener('change', (e) => toggleDarkMode(e.target.checked));
 });
